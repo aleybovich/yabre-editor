@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>YAML to Mermaid Converter</title>
+    <link rel="stylesheet" href="https://unpkg.com/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="mermaid.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+    <script src="convert.js"></script>
+    <script>
+        function fetchRules() {
+            fetch('/api/rules')
+                .then(response => response.json())
+                .then(rules => {
+                    const dropdown = document.getElementById('ruleDropdown');
+                    rules.forEach(rule => {
+                        const option = document.createElement('option');
+                        option.value = rule;
+                        option.text = rule;
+                        dropdown.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching rules:', error);
+                });
+        }
+
+        function displayRule() {
+            const ruleName = document.getElementById('ruleDropdown').value;
+            if (!ruleName) {
+                removeMermaidDiagramElement(document.querySelector('#mermaidSection .control'));
+                return
+            }
+            fetch(`/api/rules/${ruleName}`)
+                .then(response => response.text())
+                .then(yamlInput => {
+                    const mermaidCode = convertYamlToMermaid(yamlInput);
+                    removeMermaidDiagramElement(document.querySelector('#mermaidSection .control'));
+                    addMermaidDiagramElement(document.querySelector('#mermaidSection .control'), mermaidCode);
+                    return mermaid.run({
+                        querySelector: '#mermaidDiagram'
+                    })
+                })
+                .then(() => {
+                    addNodeEvents();
+                })
+                .catch(error => {
+                    console.error('Error fetching rule:', error);
+                });
+        }
+
+        function addMermaidDiagramElement(parent, mermaidCode) {
+            const mermaidElement = document.createElement('pre');
+            mermaidElement.id = 'mermaidDiagram';
+            mermaidElement.classList.add('mermaid');
+            mermaidElement.innerHTML = mermaidCode;
+
+            if (parent.hasChildNodes()) {
+                parent.innerHTML = "";
+            }
+            parent.appendChild(mermaidElement);
+        }
+
+        function removeMermaidDiagramElement(parent) {
+            if (parent.hasChildNodes()) {
+                parent.innerHTML = "";
+            }
+        }
+
+        function addNodeEvents() {
+
+            // *** Zoom and Pan
+
+            var svgs = d3.selectAll(".mermaid svg");
+
+            svgs.each(function () {
+                var svg = d3.select(this);
+
+                // Wrap the content in a 'g' element for transformation
+                svg.html("<g>" + svg.html() + "</g>");
+
+                var inner = svg.select("g");
+
+                // Define the zoom behavior
+                var zoom = d3.zoom()
+                    .on("zoom", function (event) {
+                        inner.attr("transform", event.transform);
+                    });
+
+                // Apply zoom behavior to the svg
+                svg.call(zoom);
+            });
+
+            // *** Click 
+
+            var svg = d3.select(".mermaid svg");
+
+            // Select all rect elements representing nodes (adjust selector if needed)
+            var nodes = svg.selectAll("g.nodes > g");
+
+            nodes.on("click", function () {
+                // Get the node ID from data attributes or class names
+                var nodeId = d3.select(this).attr("data-id"); // Adjust based on your structure
+                console.log("Node clicked:", nodeId);
+            });
+        }
+
+        window.onload = function () {
+            fetchRules();
+            mermaid.initialize({
+                startOnLoad: false,
+                securityLevel: 'antiscript',
+            });
+        };
+    </script>
+</head>
+
+<body>
+    <section class="section">
+        <div class="container">
+            <h1 class="title">YAML to Mermaid Converter</h1>
+            <div class="field">
+                <label class="label" for="ruleDropdown">Select a Rule:</label>
+                <div class="control">
+                    <div class="select">
+                        <select id="ruleDropdown" onchange="displayRule()">
+                            <option value="">Choose a rule</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="field" id="mermaidSection">
+                <label class="label">Diagram:</label>
+                <div class="control">
+
+                </div>
+            </div>
+    </section>
+</body>
+
+</html>

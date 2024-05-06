@@ -1,0 +1,6 @@
+g.nodes > g,
+g.nodes > g > polygon,
+g.nodes > g > rect,
+g.nodes > g > label {
+    cursor: pointer;
+}
