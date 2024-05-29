@@ -9,14 +9,12 @@ function convertYamlToMermaid(yamlInput) {
 
     function generateConditionDeclaration(conditionName, description) {
         if (declaredElements[conditionName]) return "";
-        if (description) return `    ${conditionName}{"\`${description}\`"}\n`;
-        return ""
+        return `    ${conditionName}{"\`${sanitize(description) ?? conditionName}\`"}\n`;
     }
 
     function generateActionDeclaration(actionName, description) {
         if (declaredElements[conditionName]) return "";
-        if (description) return `    ${actionName}["\`${description}\`"]\n`;
-        return ""
+        return `    ${actionName}["\`${sanitize(description) ?? actionName}\`"]\n`;
     }
 
     function generateTerminateDeclaration(terminateName) {
@@ -72,7 +70,7 @@ function convertYamlToMermaid(yamlInput) {
         mermaidCode += generateDecision(conditionName, condition.true, 'true');
         mermaidCode += generateDecision(conditionName, condition.false, 'false');
 
-        // rememebr metadata
+        // remember metadata
         metadata[conditionName] = { func: condition.Check, type: "condition" };
         if (condition.true && condition.true.action) {
             metadata[conditionName + '_true'] = {func: condition.true.action, type: "action", value: true};
@@ -83,4 +81,8 @@ function convertYamlToMermaid(yamlInput) {
     }
 
     return mermaidCode;
+}
+
+function sanitize(input) {
+    return !input ? input : input.replaceAll(`"`, "&ampquot");
 }
